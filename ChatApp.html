@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Chat Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        #chatArea {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #fff;
+        }
+
+        #messageInput {
+            width: calc(100% - 130px);
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+            border-right: none;
+            outline: none;
+        }
+
+        #sendMessageBtn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            outline: none;
+        }
+
+        #sendMessageBtn:hover {
+            background-color: #0056b3;
+        }
+
+        .message {
+            max-width: 70%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            clear: both;
+        }
+
+        .sent {
+            float: right;
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .received {
+            float: left;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="chatArea"></div>
+    <br />
+    <div style="display: flex;">
+        <input type="text" id="messageInput" placeholder="Type your message here" />
+        <button id="sendMessageBtn" onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        var socket = new SockJS("http://localhost:8080/chat");
+        var stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log("Connected: " + frame);
+            stompClient.subscribe("/topic/receive", function (message) {
+                console.log("Received: " + message.body);
+                showMessage(message.body, false); // Display received message
+            });
+        });
+
+        function sendMessage() {
+            var message = document.getElementById("messageInput").value;
+            if (message.trim() !== "") {
+                stompClient.send("/app/send/message", {}, message);
+                showMessage("You: " + message, true); // Display sent message
+                document.getElementById("messageInput").value = ""; // Clear input field
+            }
+        }
+
+        function showMessage(message, isSent) {
+            var chatArea = document.getElementById("chatArea");
+            var messageElement = document.createElement("div");
+            messageElement.textContent = message;
+            messageElement.classList.add("message");
+
+            if (isSent) {
+                messageElement.classList.add("sent");
+            } else {
+                messageElement.classList.add("received");
+            }
+
+            chatArea.appendChild(messageElement);
+            chatArea.scrollTop = chatArea.scrollHeight; // Scroll to bottom
+        }
+    </script>
+</body>
+</html>
